@@ -41,13 +41,6 @@ class LdapauthUserProvider implements UserProviderInterface
     protected $dbConn;
 
     /**
-     * The Configuration
-     *
-     * @var array $config
-     */
-    protected $config;
-
-    /**
      * Create a new LDAP user provider.
      * 
      * @param 
@@ -58,55 +51,53 @@ class LdapauthUserProvider implements UserProviderInterface
         $this->dbConn = $dbConn;
 
         // Get Configurations
-        $this->config = $this->_getConfig();
-
+        $config = $this->getConfig();
+        
         // Check for existence of ldap extension
         if (! extension_loaded('ldap')) {
-            if ($this->config['debug']) {
+            if ($config['debug']) {
                 throw new Exception("PHP LDAP extension not loaded.");
             }
         }
 
         // Check for good connection to host
-        if (! $this->conn = ldap_connect("ldap://{$this->config['host']}")) {
-            if ($this->config['debug']) {
+        if (! $this->conn = ldap_connect("ldap://{$config['host']}")) {
+            if ($config['debug']) {
                 throw new Exception(
-                    "Could not connect to LDAP host {$this->config['host']}: " . ldap_error($this->conn)
+                    "Could not connect to LDAP host {$config['host']}: " . ldap_error($this->conn)
                 );
             }
         }
 
         // Setup some LDAP options
-        ldap_set_option($this->conn, LDAP_OPT_PROTOCOL_VERSION, $this->config['version']);
+        ldap_set_option($this->conn, LDAP_OPT_PROTOCOL_VERSION, $config['version']);
         ldap_set_option($this->conn, LDAP_OPT_REFERRALS, 0);
 
 
         // If Required Configs Present
-        if ($this->config['username']
-            && $this->config['password']
-            && $this->config['rdn'] 
-        ) {
+        if ($config['username'] && $config['password'] && $config['rdn'] ) {
 
             // Attempt to Bind
             if (! @ldap_bind(
-                    $this->conn, 
-                    "uid={$this->config['username']},{$this->config['rdn']}", 
-                    $this->config['password']
+                    $this->conn,
+                    "uid={$config['username']},{$config['rdn']}", 
+                    $config['password']
                 )
             ) {
                 // No Good, Toss User an Exception
-                if ($this->config['debug']) {
+                if ($config['debug']) {
                     throw new Exception('Could not bind to AD: ' . ldap_error($this->conn));
                 }
             }
 
         // Else No Config Data
         } else {
+
             // Attempt Without User/Pass/RDN
             if (! @ldap_bind($this->conn)) {
 
                 // No Bind, Throw Exception
-                if ($this->config['debug']) {
+                if ($config['debug']) {
                     throw new Exception('Could not bind to AD: ' . ldap_error($this->conn));
                 }
             }
@@ -126,9 +117,9 @@ class LdapauthUserProvider implements UserProviderInterface
     /**
      * Get Config Settings
      */
-    private function _getConfig()
+    public function getConfig()
     {
-        $this->config = [
+        return [
             'debug' => Config::get('ldapauth::debug'),
             'host' => Config::get('ldapauth::host'),
             'version' => Config::get('ldapauth::version'),
@@ -158,22 +149,25 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     public function retrieveById($identifier)
     {
+        // Get Configurations
+        $config = $this->getConfig();
+
         // If We Found Entries
         if ($entries = $this->searchLdap($identifier)) {
 
             // Are we Using DB As Well?
-            if ($this->config['use_db']) {
+            if ($config['use_db']) {
 
                 // Grab User Row From DB
-                $ldapValue = $entries[0][$this->config['ldap_field']][0];
+                $ldapValue = $entries[0][$config['ldap_field']][0];
 
                 $user = $this->dbConn
-                    ->table($this->config['db_table'])
-                    ->where($this->config['db_field'], $ldapValue)
+                    ->table($config['db_table'])
+                    ->where($config['db_field'], '=', $ldapValue)
                     ->first();
 
                 // If User Wants Eloquent User
-                if ($this->config['eloquent']) {
+                if ($config['eloquent']) {
                     return $this->createModel()
                         ->newQuery()
                         ->find($user->id);
@@ -199,14 +193,16 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     public function retrieveByToken($identifier, $token)
     {
+        $config = $this->getConfig();
+
         // If We Found Entries
         if ($entries = $this->searchLdap($identifier)) {
 
-            $ldapValue = $entries[0][$this->config['ldap_field']][0];
+            $ldapValue = $entries[0][$config['ldap_field']][0];
             
             $user = $this->dbConn
-                ->table($this->config['db_table'])
-                ->where($this->config['db_field'], $ldapValue)
+                ->table($config['db_table'])
+                ->where($config['db_field'], '=', $ldapValue)
                 ->first();
 
             $model = $this->createModel();
@@ -245,15 +241,17 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     public function retrieveByCredentials(array $credentials)
     {
+        $config = $this->getConfig();
+
         // Search
         $result = @ldap_search(
             $this->conn, 
-            "{$this->config['login_attr']}={$credentials['username']},{$this->config['basedn']}",
-            $this->config['filter']
+            "{$config['login_attr']}={$credentials['username']},{$config['basedn']}",
+            $config['filter']
         );
         
         // Return if Not Found
-        if (! $result) {
+        if ($result == false) {
             return;
         }
 
@@ -278,15 +276,21 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     public function validateCredentials(UserInterface $user, array $credentials)
     {
+        $config = $this->getConfig();
+
         // Check Good Data Was Given
-        if ($user == null || isset($credentials['password']) == '') {
+        if ($user == null) {
+            return false;
+        }
+
+        if (isset($credentials['password']) == '') {
             return false;
         }
 
         // Check Credentials By Attempting to Bind
         if (! $result = @ldap_bind(
             $this->conn, 
-            "{$this->config['login_attr']}={$credentials['username']},{$this->config['basedn']}",
+            "{$config['login_attr']}={$credentials['username']},{$config['basedn']}",
             $credentials['password']
         )) {            
             return false;
@@ -304,23 +308,25 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     private function searchLdap($identifier)
     {
-        $filter = $this->config['filter'];  
-
+        // Grab Some Config
+        $config = $this->getConfig();
+        $filter = $config['filter'];
+        
         // Normalize Filter
         if (strpos($filter, '&')) {
 
             $filter = substr_replace(
                 $filter, 
-                "({$this->config['user_id_attr']}={$identifier})", 
+                "({$config['user_id_attr']}={$identifier})", 
                 strpos($filter, '&') + 1, 0
             );
 
         } else {
-            $filter = "(&({$this->config['user_id_attr']}={$identifier}){$filter})";
+            $filter = "(&({$config['user_id_attr']}={$identifier}){$filter})";
         }
 
         // Run Search
-        $result = @ldap_search($this->conn, $this->config['basedn'], $filter);
+        $result = @ldap_search($this->conn, $config['basedn'], $filter);
 
         // Return Early if No Hits
         if (! $result) {
@@ -345,11 +351,14 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     private function createGenericUserFromLdap($entry)
     {
+        // Grab Some Config
+        $config = $this->getConfig();
+
         // Set ID
-        $parameters = [ 'id' => $entry[$this->config['user_id_attr']][0] ];
+        $parameters = [ 'id' => $entry[$config['user_id_attr']][0] ];
 
         // Iterate Over Desired User Attributes
-        foreach ($this->config['user_attrs'] as $key => $value) {
+        foreach ($config['user_attrs'] as $key => $value) {
             // Set Attribute To What Was In LDAP
             $parameters[$value] = $entry[$key][0];
         }
@@ -365,7 +374,10 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     private function createModel()
     {
-        $class = '\\' . ltrim($this->config['user_model'], '\\');
+        // Grab Some Config
+        $config = $this->getConfig();
+
+        $class = '\\' . ltrim($config['user_model'], '\\');
 
         return new $class;
     }
