@@ -1,4 +1,5 @@
-# LDAP Authentication
+# LDAP Authentication #
+This is based off of [Yuri Moens L4OpenLdap Provider](https://github.com/yuri-moens/l4-openldap)
 
 An OpenLDAP authentication driver for Laravel 4.
 
