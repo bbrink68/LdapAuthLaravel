@@ -1,7 +1,7 @@
 <?php
 
 /**
- * LDAP configuration for ymo/l4-openldap
+ * LDAP configuration for mbrown/ldapauth
  */
 
 return array(
@@ -28,4 +28,5 @@ return array(
     'eloquent' => true, // set to true if you want to return an Eloquent user instead of a GenericUser object
     'eloquent_user_model' => 'User', // name of the User model
 
+    'debug' => true, 
 );

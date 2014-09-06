@@ -1,4 +1,6 @@
-<?php namespace Mattbrown\Ldapauth;
+<?php 
+
+namespace Mattbrown\Ldapauth;
 
 use Illuminate\Auth\Guard;
 use Illuminate\Support\ServiceProvider;

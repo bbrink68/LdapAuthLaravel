@@ -1,4 +1,6 @@
-<?php namespace Mattbrown\Ldapauth;
+<?php 
+
+namespace Mattbrown\Ldapauth;
 
 use Config;
 use Exception;
@@ -39,32 +41,74 @@ class LdapauthUserProvider implements UserProviderInterface
     protected $dbConn;
 
     /**
+     * The Configuration
+     *
+     * @var array $config
+     */
+    protected $config;
+
+    /**
      * Create a new LDAP user provider.
      * 
      * @param 
      */
     public function __construct(Connection $dbConn)
     {
+        // Get DB Connection
         $this->dbConn = $dbConn;
 
+        // Get Configurations
+        $this->config = $this->_getConfig();
+
+        // Check for existence of ldap extension
         if (! extension_loaded('ldap')) {
-            throw new Exception("PHP LDAP extension not loaded.");
+            if ($this->config['debug']) {
+                throw new Exception("PHP LDAP extension not loaded.");
+            }
         }
 
-        if (! $this->conn = ldap_connect("ldap://" . Config::get('l4-openldap::host'))) {
-            throw new Exception("Could not connect to LDAP host " . Config::get('l4-openldap::host') . ": " . ldap_error($this->conn));
+        // Check for good connection to host
+        if (! $this->conn = ldap_connect("ldap://{$this->config['host']}")) {
+            if ($this->config['debug']) {
+                throw new Exception(
+                    "Could not connect to LDAP host {$this->config['host']}: " . ldap_error($this->conn)
+                );
+            }
         }
 
-        ldap_set_option($this->conn, LDAP_OPT_PROTOCOL_VERSION, Config::get('l4-openldap::version'));
+        // Setup some LDAP options
+        ldap_set_option($this->conn, LDAP_OPT_PROTOCOL_VERSION, $this->config['version']);
         ldap_set_option($this->conn, LDAP_OPT_REFERRALS, 0);
 
-        if (Config::get('l4-openldap::username') && Config::get('l4-openldap::password') && Config::get('l4-openldap::rdn')) {
-            if (!@ldap_bind($this->conn, 'cn=' . Config::get('l4-openldap::username') . ',' . Config::get('l4-openldap::rdn'), Config::get('l4-openldap::password'))) {
-                throw new Exception('Could not bind to AD: ' . ldap_error($this->conn));
+
+        // If Required Configs Present
+        if ($this->config['username']
+            && $this->config['password']
+            && $this->config['rdn'] 
+        ) {
+
+            // Attempt to Bind
+            if (! @ldap_bind(
+                    $this->conn, 
+                    "uid={$this->config['username']},{$this->config['rdn']}", 
+                    $this->config['password']
+                )
+            ) {
+                // No Good, Toss User an Exception
+                if ($this->config['debug']) {
+                    throw new Exception('Could not bind to AD: ' . ldap_error($this->conn));
+                }
             }
+
+        // Else No Config Data
         } else {
-            if (!@ldap_bind($this->conn)) {
-                throw new Exception('Could not bind to AD: ' . ldap_error($this->conn));
+            // Attempt Without User/Pass/RDN
+            if (! @ldap_bind($this->conn)) {
+
+                // No Bind, Throw Exception
+                if ($this->config['debug']) {
+                    throw new Exception('Could not bind to AD: ' . ldap_error($this->conn));
+                }
             }
         }
     }
@@ -80,6 +124,33 @@ class LdapauthUserProvider implements UserProviderInterface
     }
 
     /**
+     * Get Config Settings
+     */
+    private function _getConfig()
+    {
+        $this->config = [
+            'debug' => Config::get('ldapauth::debug'),
+            'host' => Config::get('ldapauth::host'),
+            'version' => Config::get('ldapauth::version'),
+            'username' => Config::get('ldapauth::username'),
+            'password' => Config::get('ldapauth::password'),
+            'rdn' => Config::get('ldapauth::rdn'),
+            'use_db' => Config::get('ldapauth::use_db'),
+            'ldap_field' => Config::get('ldapauth::ldap_field'),
+            'db_table' => Config::get('ldapauth::db_table'),
+            'db_field' => Config::get('ldapauth::db_field'),
+            'eloquent' => Config::get('ldapauth::eloquent'),
+            'login_attr' => Config::get('ldapauth::login_attribute'),
+            'user_id_attr' => Config::get('ldapauth::user_id_attribute'),
+            'basedn' => Config::get('ldapauth::basedn'),
+            'filter' => Config::get('ldapauth::filter'),
+            'user_attrs' => Config::get('ldapauth::user_attributes'),
+            'user_model' => Config::get('ldapauth::eloquent_user_model')
+        ];
+    }
+
+
+    /**
      * Retrieve a user by their unique identifier.
      * 
      * @param  mixed $identifier
@@ -87,16 +158,32 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     public function retrieveById($identifier)
     {
+        // If We Found Entries
         if ($entries = $this->searchLdap($identifier)) {
-            if (Config::get('l4-openldap::use_db')) {
-                $ldap_value = $entries[0][Config::get('l4-openldap::ldap_field')][0];
-                $user = $this->db_conn->table(Config::get('l4-openldap::db_table'))->where(Config::get('l4-openldap::db_field'), '=', $ldap_value)->first();
 
-                if (Config::get('l4-openldap::eloquent')) {
-                    return $this->createModel()->newQuery()->find($user->id);
+            // Are we Using DB As Well?
+            if ($this->config['use_db']) {
+
+                // Grab User Row From DB
+                $ldapValue = $entries[0][$this->config['ldap_field']][0];
+
+                $user = $this->dbConn
+                    ->table($this->config['db_table'])
+                    ->where($this->config['db_field'], $ldapValue)
+                    ->first();
+
+                // If User Wants Eloquent User
+                if ($this->config['eloquent']) {
+                    return $this->createModel()
+                        ->newQuery()
+                        ->find($user->id);
+
+                // If User Wants Generic User
                 } else {
                     return new GenericUser(get_object_vars($user));
                 }
+
+            // Not Using DB - Create Generic from LDAP
             } else {
                 return $this->createGenericUserFromLdap($entries[0]);
             }
@@ -112,16 +199,23 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     public function retrieveByToken($identifier, $token)
     {
+        // If We Found Entries
         if ($entries = $this->searchLdap($identifier)) {
-                $ldap_value = $entries[0][Config::get('l4-openldap::ldap_field')][0];
-                $user = $this->db_conn->table(Config::get('l4-openldap::db_table'))->where(Config::get('l4-openldap::db_field'), '=', $ldap_value)->first();
 
-                $model = $this->createModel();
+            $ldapValue = $entries[0][$this->config['ldap_field']][0];
+            
+            $user = $this->dbConn
+                ->table($this->config['db_table'])
+                ->where($this->config['db_field'], $ldapValue)
+                ->first();
 
-                return $model->newQuery()
-                    ->where('id', $user->id)
-                    ->where($model->getRememberTokenName(), $token)
-                    ->first();
+            $model = $this->createModel();
+
+            // Return Model
+            return $model->newQuery()
+                ->where('id', $user->id)
+                ->where($model->getRememberTokenName(), $token)
+                ->first();
         } 
     }
 
@@ -134,9 +228,11 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     public function updateRememberToken(UserInterface $user, $token)
     {
+        // If Eloquent User
         if (! $user instanceof GenericUser) {
+            
+            // Update Remember Me Token
             $user->setAttribute($user->getRememberTokenName(), $token);
-
             $user->save();
         }
     }
@@ -149,16 +245,25 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     public function retrieveByCredentials(array $credentials)
     {
-        $result = @ldap_search($this->conn, Config::get('l4-openldap::login_attribute') . '=' . $credentials['username'] . ',' . Config::get('l4-openldap::basedn'), Config::get('l4-openldap::filter'));
-        if ($result == false) {
+        // Search
+        $result = @ldap_search(
+            $this->conn, 
+            "{$this->config['login_attr']}={$credentials['username']},{$this->config['basedn']}",
+            $this->config['filter']
+        );
+        
+        // Return if Not Found
+        if (! $result) {
             return;
         }
 
+        // Found, Verify We Only Have One
         $entries = ldap_get_entries($this->conn, $result);
         if ($entries['count'] == 0 || $entries['count'] > 1) {
             return;
         }
 
+        // Create Model From Entry
         $this->model = $this->createGenericUserFromLdap($entries[0]);
 
         return $this->model;
@@ -173,17 +278,21 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     public function validateCredentials(UserInterface $user, array $credentials)
     {
-        if ($user == null) {
-            return false;
-        }
-        if (isset($credentials['password']) == '') {
-            return false;
-        }
-
-        if (!$result = @ldap_bind($this->conn, Config::get('l4-openldap::login_attribute') . '=' . $credentials['username'] . ',' . Config::get('l4-openldap::basedn'), $credentials['password'])) {
+        // Check Good Data Was Given
+        if ($user == null || isset($credentials['password']) == '') {
             return false;
         }
 
+        // Check Credentials By Attempting to Bind
+        if (! $result = @ldap_bind(
+            $this->conn, 
+            "{$this->config['login_attr']}={$credentials['username']},{$this->config['basedn']}",
+            $credentials['password']
+        )) {            
+            return false;
+        }
+
+        // Good Auth Otherwise
         return true;
     }
 
@@ -195,24 +304,36 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     private function searchLdap($identifier)
     {
-        $filter = Config::get('l4-openldap::filter');
+        $filter = $this->config['filter'];  
+
+        // Normalize Filter
         if (strpos($filter, '&')) {
-            $filter = substr_replace($filter, '(' . Config::get('l4-openldap::user_id_attribute') . '=' . $identifier . ')', strpos($filter, '&')+1, 0);
+
+            $filter = substr_replace(
+                $filter, 
+                "({$this->config['user_id_attr']}={$identifier})", 
+                strpos($filter, '&') + 1, 0
+            );
+
         } else {
-            $filter = '(&(' . Config::get('l4-openldap::user_id_attribute') . '=' . $identifier . ')' . $filter . ')';
+            $filter = "(&({$this->config['user_id_attr']}={$identifier}){$filter})";
         }
 
-        $result = @ldap_search($this->conn, Config::get('l4-openldap::basedn'), $filter);
+        // Run Search
+        $result = @ldap_search($this->conn, $this->config['basedn'], $filter);
 
-        if ($result == false) {
+        // Return Early if No Hits
+        if (! $result) {
             return;
         }
 
+        // Good Return, Verfiy Only 1 Returned
         $entries = ldap_get_entries($this->conn, $result);
         if ($entries['count'] == 0 || $entries['count'] > 1) {
             return;
         }
 
+        // Return Single Entry
         return $entries;
     }
 
@@ -224,14 +345,16 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     private function createGenericUserFromLdap($entry)
     {
-        $parameters = array (
-            'id' => $entry[Config::get('l4-openldap::user_id_attribute')][0]
-        );
+        // Set ID
+        $parameters = [ 'id' => $entry[$this->config['user_id_attr']][0] ];
 
-        foreach (Config::get('l4-openldap::user_attributes') as $key => $value) {
+        // Iterate Over Desired User Attributes
+        foreach ($this->config['user_attrs'] as $key => $value) {
+            // Set Attribute To What Was In LDAP
             $parameters[$value] = $entry[$key][0];
         }
 
+        // Return User
         return new GenericUser($parameters);
     }
 
@@ -242,7 +365,7 @@ class LdapauthUserProvider implements UserProviderInterface
      */
     private function createModel()
     {
-        $class = '\\' . ltrim(Config::get('l4-openldap::eloquent_user_model'), '\\');
+        $class = '\\' . ltrim($this->config['user_model'], '\\');
 
         return new $class;
     }
