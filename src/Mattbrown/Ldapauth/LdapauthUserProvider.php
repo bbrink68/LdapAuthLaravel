@@ -6,7 +6,6 @@ use Config;
 use Exception;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Auth\UserInterface;
-use Illuminate\Auth\UserProviderInterface;
 use Illuminate\Database\Connection;
 
 /**
@@ -127,7 +126,7 @@ class LdapauthUserProvider
             'password' => config('ldap.password'),              //Config::get('ldapauth::password'),
             'rdn' => config('ldap.rdn'),                        //Config::get('ldapauth::rdn'),
             'use_db' => config('ldap.use_db'),                  //Config::get('ldapauth::use_db'),
-            'ldap_field' => Cconfig('ldap.ldap_field'),         //Config::get('ldapauth::ldap_field'),
+            'ldap_field' => config('ldap.ldap_field'),          //Config::get('ldapauth::ldap_field'),
             'db_table' => config('ldap.db_table'),              //Config::get('ldapauth::db_table'),
             'db_field' => config('ldap.db_field'),              //Config::get('ldapauth::db_field'),
             'eloquent' => config('ldap.eloquent'),              //Config::get('ldapauth::eloquent'),
