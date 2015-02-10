@@ -35,6 +35,10 @@ class LdapauthServiceProvider extends ServiceProvider
                 $app->make('session.store')
             );
         });
+
+        $this->publishes([
+            __DIR__.'/../../config' => config_path('/'),
+        ]);
     }
 
     /**
