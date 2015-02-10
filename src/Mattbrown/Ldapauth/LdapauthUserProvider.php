@@ -5,7 +5,7 @@ namespace Mattbrown\Ldapauth;
 use Config;
 use Exception;
 use Illuminate\Auth\GenericUser;
-use Illuminate\Auth\UserInterface;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Database\Connection;
 
@@ -18,7 +18,7 @@ use Illuminate\Database\Connection;
  */
 
 class LdapauthUserProvider implements UserProvider {
-    
+
     /**
      * The Eloquent user model.
      *
@@ -189,7 +189,7 @@ class LdapauthUserProvider implements UserProvider {
      * 
      * @param  mixed $identifier
      * @param  string $token
-     * @return \Illuminate\Auth\UserInterface|null
+     * @return UserProvider|null
      */
     public function retrieveByToken($identifier, $token)
     {
@@ -218,11 +218,11 @@ class LdapauthUserProvider implements UserProvider {
     /**
      * Update the "remember me" token for the given user in storage.
      * 
-     * @param  \Illuminate\Auth\UserInterface $user
+     * @param  Authenticatable $user
      * @param  string $token
      * @return void
      */
-    public function updateRememberToken(UserInterface $user, $token)
+    public function updateRememberToken(Authenticatable $user, $token)
     {
         // If Eloquent User
         if (! $user instanceof GenericUser) {
@@ -237,7 +237,7 @@ class LdapauthUserProvider implements UserProvider {
      * Retrieve a user by the given credentials.
      * 
      * @param  array  $credentials
-     * @return \Illuminate\Auth\UserInterface|null
+     * @return UserProvider|null
      */
     public function retrieveByCredentials(array $credentials)
     {
@@ -270,11 +270,11 @@ class LdapauthUserProvider implements UserProvider {
     /**
      * Validate a user against the given credentials.
      * 
-     * @param  \Illuminate\Auth\UserInterface  $user
+     * @param  Authenticatable $user
      * @param  array
      * @return boolean
      */
-    public function validateCredentials(UserInterface $user, array $credentials)
+    public function validateCredentials(Authenticatable $user, array $credentials)
     {
         $config = $this->getConfig();
 
