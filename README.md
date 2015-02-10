@@ -26,6 +26,6 @@ Open `config/auth.php` and change the authentication driver to `ldap`.
 
 ## Configuration
 
-Run `php artisan vendor:publish`, then find `app/config/ldap.php` and adjust the config file for your LDAP settings.
+Run `php artisan vendor:publish --provider="Mattbrown\Ldapauth\LdapauthServiceProvider"`, then find `app/config/ldap.php` and adjust the config file for your LDAP settings.
 
 Profit Dollars.
