@@ -6,6 +6,7 @@ use Config;
 use Exception;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Auth\UserInterface;
+use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Database\Connection;
 
 /**
@@ -16,8 +17,8 @@ use Illuminate\Database\Connection;
  *
  */
 
-class LdapauthUserProvider
-{
+class LdapauthUserProvider implements UserProvider {
+    
     /**
      * The Eloquent user model.
      *
