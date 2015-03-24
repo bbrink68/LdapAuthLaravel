@@ -29,14 +29,16 @@ class LdapauthServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->package('mattbrown/ldapauth');
-
         $this->app['auth']->extend('ldap', function ($app) {
             return new Guard(
                 new LdapauthUserProvider($app['db']->connection()),
                 $app->make('session.store')
             );
         });
+
+        $this->publishes([
+            __DIR__.'/../../config' => config_path('/'),
+        ]);
     }
 
     /**

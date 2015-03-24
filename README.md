@@ -13,16 +13,19 @@ require {
 }
 ```
 
-Run `composer update`.
+`composer update`.
 
-Open `app/config/app.php` and add:
+In `config/app.php`:
 
-`Mattbrown\Ldapauth\LdapauthServiceProvider`
+Add `'Mattbrown\Ldapauth\LdapauthServiceProvider'` to providers array.
 
-Open `app/config/auth.php` and change the authentication driver to `ldap`.
+`composer dump-auto`
+
+Open `config/auth.php` and change the authentication driver to `ldap`.
+
 
 ## Configuration
 
-Run `php artisan config:publish mattbrown/ldapauth` and adjust the config file for your LDAP settings.
+Run `php artisan vendor:publish --provider="Mattbrown\Ldapauth\LdapauthServiceProvider"`, then find `app/config/ldap.php` and adjust the config file for your LDAP settings.
 
-It can be found in `app/config/packages/mattbrown/ldapauth`.
+Profit Dollars.
