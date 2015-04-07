@@ -5,8 +5,8 @@ namespace Mattbrown\Ldapauth;
 use Config;
 use Exception;
 use Illuminate\Auth\GenericUser;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Contracts\Auth\UserProvider;
+use Illuminate\Auth\UserInterface;
+use Illuminate\Auth\UserProviderInterface;
 use Illuminate\Database\Connection;
 
 /**
@@ -17,7 +17,7 @@ use Illuminate\Database\Connection;
  *
  */
 
-class LdapauthUserProvider implements UserProvider {
+class LdapauthUserProvider implements UserProviderInterface {
 
     /**
      * The Eloquent user model.
@@ -212,11 +212,11 @@ class LdapauthUserProvider implements UserProvider {
     /**
      * Update the "remember me" token for the given user in storage.
      *
-     * @param  Authenticatable $user
+     * @param  UserInterface $user
      * @param  string $token
      * @return void
      */
-    public function updateRememberToken(Authenticatable $user, $token)
+    public function updateRememberToken(UserInterface $user, $token)
     {
         // If Eloquent User
         if (! $user instanceof GenericUser) {
@@ -265,11 +265,11 @@ class LdapauthUserProvider implements UserProvider {
     /**
      * Validate a user against the given credentials.
      *
-     * @param  Authenticatable $user
+     * @param  UserInterface $user
      * @param  array
      * @return boolean
      */
-    public function validateCredentials(Authenticatable $user, array $credentials)
+    public function validateCredentials(UserInterface $user, array $credentials)
     {
         $config = $this->getConfig();
         $this->_connect();
