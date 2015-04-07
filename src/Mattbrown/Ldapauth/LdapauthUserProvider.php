@@ -128,23 +128,23 @@ class LdapauthUserProvider implements UserProviderInterface {
     public function getConfig()
     {
         return [
-            'debug' => config('ldap.debug'),                    //Config::get('ldapauth::debug'),
-            'host' => config('ldap.host'),                      //Config::get('ldapauth::host'),
-            'version' => config('ldap.version'),                //Config::get('ldapauth::version'),
-            'username' => config('ldap.username'),              //Config::get('ldapauth::username'),
-            'password' => config('ldap.password'),              //Config::get('ldapauth::password'),
-            'rdn' => config('ldap.rdn'),                        //Config::get('ldapauth::rdn'),
-            'use_db' => config('ldap.use_db'),                  //Config::get('ldapauth::use_db'),
-            'ldap_field' => config('ldap.ldap_field'),          //Config::get('ldapauth::ldap_field'),
-            'db_table' => config('ldap.db_table'),              //Config::get('ldapauth::db_table'),
-            'db_field' => config('ldap.db_field'),              //Config::get('ldapauth::db_field'),
-            'eloquent' => config('ldap.eloquent'),              //Config::get('ldapauth::eloquent'),
-            'login_attr' => config('ldap.login_attribute'),     //Config::get('ldapauth::login_attribute'),
-            'user_id_attr' => config('ldap.user_id_attribute'), //Config::get('ldapauth::user_id_attribute'),
-            'basedn' => config('ldap.basedn'),                  //Config::get('ldapauth::basedn'),
-            'filter' => config('ldap.filter'),                  //Config::get('ldapauth::filter'),
-            'user_attrs' => config('ldap.user_attributes'),     //Config::get('ldapauth::user_attributes'),
-            'user_model' => config('ldap.eloquent_user_model')  //Config::get('ldapauth::eloquent_user_model')
+            'debug' => Config::get('ldapauth::debug'),                    //Config::get('ldapauth::debug'),
+            'host' => Config::get('ldapauth::host'),                      //Config::get('ldapauth::host'),
+            'version' => Config::get('ldapauth::version'),                //Config::get('ldapauth::version'),
+            'username' => Config::get('ldapauth::username'),              //Config::get('ldapauth::username'),
+            'password' => Config::get('ldapauth::password'),              //Config::get('ldapauth::password'),
+            'rdn' => Config::get('ldapauth::rdn'),                        //Config::get('ldapauth::rdn'),
+            'use_db' => Config::get('ldapauth::use_db'),                  //Config::get('ldapauth::use_db'),
+            'ldap_field' => Config::get('ldapauth::ldap_field'),          //Config::get('ldapauth::ldap_field'),
+            'db_table' => Config::get('ldapauth::db_table'),              //Config::get('ldapauth::db_table'),
+            'db_field' => Config::get('ldapauth::db_field'),              //Config::get('ldapauth::db_field'),
+            'eloquent' => Config::get('ldapauth::eloquent'),              //Config::get('ldapauth::eloquent'),
+            'login_attr' => Config::get('ldapauth::login_attribute'),     //Config::get('ldapauth::login_attribute'),
+            'user_id_attr' => Config::get('ldapauth::user_id_attribute'), //Config::get('ldapauth::user_id_attribute'),
+            'basedn' => Config::get('ldapauth::basedn'),                  //Config::get('ldapauth::basedn'),
+            'filter' => Config::get('ldapauth::filter'),                  //Config::get('ldapauth::filter'),
+            'user_attrs' => Config::get('ldapauth::user_attributes'),     //Config::get('ldapauth::user_attributes'),
+            'user_model' => Config::get('ldapauth::eloquent_user_model')  //Config::get('ldapauth::eloquent_user_model')
         ];
     }
 
