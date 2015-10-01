@@ -86,15 +86,17 @@ class LdapauthUserProvider implements UserProvider {
         if ($config['username'] && $config['password'] && $config['rdn'] ) {
 
             // Attempt to Bind
-            if (! @ldap_bind(
-                    $this->conn,
-                    "uid={$config['username']},{$config['rdn']}",
-                    $config['password']
-                )
-            ) {
-                // No Good, Toss User an Exception
-                if ($config['debug']) {
-                    throw new Exception('Could not bind to AD: ' . ldap_error($this->conn));
+            if (ldap_start_tls($this->conn)) {
+                if (! @ldap_bind(
+                        $this->conn,
+                        "uid={$config['username']},{$config['rdn']}",
+                        $config['password']
+                    )
+                ) {
+                    // No Good, Toss User an Exception
+                    if ($config['debug']) {
+                        throw new Exception('Could not bind to AD: ' . ldap_error($this->conn));
+                    }
                 }
             }
 
