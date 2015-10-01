@@ -33,7 +33,7 @@ class LdapauthServiceProvider extends ServiceProvider
 
         $this->app['auth']->extend('ldap', function ($app) {
             return new Guard(
-                new LdapauthUserProvider($app['db']->connection()),
+                new LdapauthUserProvider($app['db']->connection($app['config']->get('ldap.db_connection'))),
                 $app->make('session.store')
             );
         });
