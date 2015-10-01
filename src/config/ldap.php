@@ -42,6 +42,7 @@ return array(
     // Required if use_db
     // LDAP field we want to compare to the db_field to find our user
     'ldap_field' => 'uid',
+    'db_connection' => null,
     'db_table' => 'users',
 
     // DB field we want to compare to the ldap_field to find our user
