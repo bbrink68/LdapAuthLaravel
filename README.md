@@ -9,7 +9,7 @@ Add the following to your `composer.json` file.
 
 ```json
 require {
-	"mattbrown/ldapauth": "2.0"
+	"mattbrown/ldapauth": "2.*"
 }
 ```
 
