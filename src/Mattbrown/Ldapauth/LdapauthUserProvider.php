@@ -358,8 +358,12 @@ class LdapauthUserProvider implements UserProvider {
 
         // Iterate Over Desired User Attributes
         foreach ($config['user_attrs'] as $key => $value) {
-            // Set Attribute To What Was In LDAP
-            $parameters[$value] = $entry[$key][0];
+            // Set Attribute To What Was In LDAP (If Present)
+            if (array_key_exists($key, $entry)) {
+                $parameters[$value] = $entry[$key][0];
+            } else {
+                $parameters[$value] = '';
+            }
         }
 
         // Return User
