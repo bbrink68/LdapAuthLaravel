@@ -1,8 +1,7 @@
-<?php 
+<?php
 
 namespace Mattbrown\Ldapauth;
 
-use Illuminate\Auth\Guard;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -24,26 +23,35 @@ class LdapauthServiceProvider extends ServiceProvider
 
     /**
      * Bootstrap the application events.
-     * 
+     *
      * @return void
      */
     public function boot()
     {
-        $this->app['auth']->extend('ldap', function ($app) {
-            return new Guard(
-                new LdapauthUserProvider($app['db']->connection($app['config']->get('ldap.db_connection'))),
-                $app->make('session.store')
-            );
-        });
-
         $this->publishes([
             __DIR__.'/../../config' => config_path('/'),
         ]);
+
+        $auth = \Auth::getFacadeRoot();
+
+        if (method_exists($auth, 'provider')) {
+            // If the provider method exists, we're running Laravel 5.2.
+            // Register the ldap auth user provider.
+            $auth->provider('ldap', function($app, array $config) {
+                return new LdapauthUserProvider($app['db']->connection($app['config']->get('ldap.db_connection')));
+            });
+        } else {
+            // Otherwise we're using 5.0 || 5.1
+            // Extend Laravel authentication with ldap driver.
+            $auth->extend('ldap', function ($app) {
+                new LdapauthUserProvider($app['db']->connection($app['config']->get('ldap.db_connection')));
+            });
+        }
     }
 
     /**
      * Register the service provider.
-     * 
+     *
      * @return void
      */
     public function register()
@@ -53,7 +61,7 @@ class LdapauthServiceProvider extends ServiceProvider
 
     /**
      * Get the services provided by the provider.
-     * 
+     *
      * @return array
      */
     public function provides()

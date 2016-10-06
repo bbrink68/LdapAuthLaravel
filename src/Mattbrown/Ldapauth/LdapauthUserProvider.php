@@ -43,7 +43,7 @@ class LdapauthUserProvider implements UserProvider {
     /**
      * Create a new LDAP user provider.
      *
-     * @param
+     * @param Connection $dbConn
      */
     public function __construct(Connection $dbConn)
     {
@@ -88,10 +88,10 @@ class LdapauthUserProvider implements UserProvider {
             // Attempt to Bind
             if (ldap_start_tls($this->conn)) {
                 if (! @ldap_bind(
-                        $this->conn,
-                        "uid={$config['username']},{$config['rdn']}",
-                        $config['password']
-                    )
+                    $this->conn,
+                    "uid={$config['username']},{$config['rdn']}",
+                    $config['password']
+                )
                 ) {
                     // No Good, Toss User an Exception
                     if ($config['debug']) {
@@ -100,7 +100,7 @@ class LdapauthUserProvider implements UserProvider {
                 }
             }
 
-        // Else No Config Data
+            // Else No Config Data
         } else {
 
             // Attempt Without User/Pass/RDN
@@ -138,6 +138,7 @@ class LdapauthUserProvider implements UserProvider {
             'rdn' => config('ldap.rdn'),                        //Config::get('ldapauth::rdn'),
             'use_db' => config('ldap.use_db'),                  //Config::get('ldapauth::use_db'),
             'ldap_field' => config('ldap.ldap_field'),          //Config::get('ldapauth::ldap_field'),
+            'db_connection' => config('ldap.db_connection'),    //Config::get('ldapauth::db_connection'),
             'db_table' => config('ldap.db_table'),              //Config::get('ldapauth::db_table'),
             'db_field' => config('ldap.db_field'),              //Config::get('ldapauth::db_field'),
             'eloquent' => config('ldap.eloquent'),              //Config::get('ldapauth::eloquent'),
@@ -163,7 +164,7 @@ class LdapauthUserProvider implements UserProvider {
         $config = $this->getConfig();
 
         // Grab User Row From DB
-        $user = $this->dbConn
+        $user = \DB::connection($config['db_connection'])
             ->table($config['db_table'])
             ->where('id', '=', $identifier)
             ->first();
@@ -196,7 +197,7 @@ class LdapauthUserProvider implements UserProvider {
 
             $ldapValue = $entries[0][$config['ldap_field']][0];
 
-            $user = $this->dbConn
+            $user = \DB::connection($config['db_connection'])
                 ->table($config['db_table'])
                 ->where($config['db_field'], '=', $ldapValue)
                 ->first();
@@ -259,7 +260,9 @@ class LdapauthUserProvider implements UserProvider {
         }
 
         // Create Model From Entry
-        $this->model = $this->createGenericUserFromLdap($entries[0]);
+        $this->model = ($config['eloquent'])
+            ? $this->retrieveById($entries[0][$config['user_id_attr']][0])
+            : $this->createGenericUserFromLdap($entries[0]);
 
         return $this->model;
     }
