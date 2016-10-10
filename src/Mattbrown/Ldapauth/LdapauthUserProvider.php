@@ -166,7 +166,7 @@ class LdapauthUserProvider implements UserProvider {
         // Grab User Row From DB
         $user = \DB::connection($config['db_connection'])
             ->table($config['db_table'])
-            ->where('id', '=', $identifier)
+            ->where($config['db_field'], '=', $identifier)
             ->first();
 
         if ($user) {
@@ -261,7 +261,7 @@ class LdapauthUserProvider implements UserProvider {
 
         // Create Model From Entry
         $this->model = ($config['eloquent'])
-            ? $this->retrieveById($entries[0][$config['user_id_attr']][0])
+            ? $this->retrieveById($entries[0][$config['user_id_attr']][0], $config['db_field'])
             : $this->createGenericUserFromLdap($entries[0]);
 
         return $this->model;
