@@ -69,7 +69,7 @@ class LdapauthUserProvider implements UserProviderInterface {
         }
 
         // Check for good connection to host
-        if (! $this->conn = ldap_connect("ldap://{$config['host']}")) {
+        if (! $this->conn = ldap_connect("ldaps://{$config['host']}", 636)) {
             if ($config['debug']) {
                 throw new Exception(
                     "Could not connect to LDAP host {$config['host']}: " . ldap_error($this->conn)
@@ -86,7 +86,7 @@ class LdapauthUserProvider implements UserProviderInterface {
         if ($config['username'] && $config['password'] && $config['rdn'] ) {
 
             // Attempt to Bind
-            if (ldap_start_tls($this->conn)) {
+            // if (ldap_start_tls($this->conn)) {
                 if (! @ldap_bind(
                         $this->conn,
                         "uid={$config['username']},{$config['rdn']}",
@@ -98,7 +98,7 @@ class LdapauthUserProvider implements UserProviderInterface {
                         throw new Exception('Could not bind to AD: ' . ldap_error($this->conn));
                     }
                 }
-            }
+            // }
 
         // Else No Config Data
         } else {
